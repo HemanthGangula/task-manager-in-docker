@@ -36,3 +36,8 @@ Thumbs.db
 
 # Local assistant workspace metadata
 .claude/
+
+# Playwright
+node_modules/
+playwright-report/
+test-results/

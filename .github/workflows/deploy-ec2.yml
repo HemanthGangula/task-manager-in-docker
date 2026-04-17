@@ -7,8 +7,34 @@ on:
   workflow_dispatch:
 
 jobs:
+  playwright-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   build-push-deploy:
     runs-on: ubuntu-latest
+    needs: playwright-tests
 
     steps:
       - uses: actions/checkout@v4
@@ -34,12 +60,10 @@ jobs:
             IMAGE=${{ secrets.DOCKER_IMAGE_NAME }}:latest
             sudo docker pull $IMAGE
 
-            # start candidate on temp port and health check it
             sudo docker rm -f app-candidate 2>/dev/null || true
             sudo docker run -d --name app-candidate -p 8081:8080 $IMAGE
             until curl -fs http://localhost:8081/health; do sleep 1; done
 
-            # swap: stop old, start new on prod port
             sudo docker rm -f app 2>/dev/null || true
             sudo docker run -d --name app --restart unless-stopped -p 80:8080 $IMAGE
             sudo docker rm -f app-candidate

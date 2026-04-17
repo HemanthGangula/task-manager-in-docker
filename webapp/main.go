@@ -37,12 +37,21 @@ func main() {
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/api/tasks", handleTasks)
 	mux.HandleFunc("/api/tasks/", handleTaskByID)
+	mux.HandleFunc("/api/reset", handleReset)
 	mux.HandleFunc("/", handleIndex)
 
 	log.Printf("task manager listening on port %s", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func handleReset(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	tasks = []Task{}
+	taskIDCounter = 0
+	mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
