@@ -62,10 +62,13 @@ test('delete a task', async ({ page }) => {
 });
 
 test('filter pending tasks', async ({ page }) => {
+  const addBtn = page.getByRole('button', { name: 'Add' });
   await page.getByPlaceholder('Add a new task...').fill('Task one');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
+  await expect(page.getByText('Task one', { exact: true })).toBeVisible();
+  await expect(addBtn).toBeEnabled();
   await page.getByPlaceholder('Add a new task...').fill('Task two');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
   await expect(page.getByText('Task two', { exact: true })).toBeVisible();
 
   await page.locator('.check-btn').first().click();
@@ -76,10 +79,13 @@ test('filter pending tasks', async ({ page }) => {
 });
 
 test('filter done tasks', async ({ page }) => {
+  const addBtn = page.getByRole('button', { name: 'Add' });
   await page.getByPlaceholder('Add a new task...').fill('Task A');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
+  await expect(page.getByText('Task A', { exact: true })).toBeVisible();
+  await expect(addBtn).toBeEnabled();
   await page.getByPlaceholder('Add a new task...').fill('Task B');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
   await expect(page.getByText('Task B', { exact: true })).toBeVisible();
 
   await page.locator('.check-btn').first().click();
@@ -97,11 +103,13 @@ test('empty state shows when no tasks', async ({ page }) => {
 test('stats update correctly', async ({ page }) => {
   await expect(page.locator('#statTotal')).toHaveText('0');
 
+  const addBtn = page.getByRole('button', { name: 'Add' });
   await page.getByPlaceholder('Add a new task...').fill('Task 1');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
   await expect(page.getByText('Task 1', { exact: true })).toBeVisible();
+  await expect(addBtn).toBeEnabled();
   await page.getByPlaceholder('Add a new task...').fill('Task 2');
-  await page.getByRole('button', { name: 'Add' }).click();
+  await addBtn.click();
   await expect(page.getByText('Task 2', { exact: true })).toBeVisible();
 
   await expect(page.locator('#statTotal')).toHaveText('2');
