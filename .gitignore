@@ -1,0 +1,38 @@
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.a
+*.o
+*.test
+*.out
+
+# Common build output directories
+bin/
+dist/
+
+# Test and coverage output
+coverage.out
+*.coverprofile
+
+# Runtime logs
+*.log
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editor and OS-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local assistant workspace metadata
+.claude/

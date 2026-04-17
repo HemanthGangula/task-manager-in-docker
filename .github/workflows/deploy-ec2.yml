@@ -1,0 +1,45 @@
+name: CI/CD to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        run: |
+          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:latest .
+          docker push ${{ secrets.DOCKER_IMAGE_NAME }}:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            IMAGE=${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            sudo docker pull $IMAGE
+
+            # start candidate on temp port and health check it
+            sudo docker rm -f app-candidate 2>/dev/null || true
+            sudo docker run -d --name app-candidate -p 8081:8080 $IMAGE
+            until curl -fs http://localhost:8081/health; do sleep 1; done
+
+            # swap: stop old, start new on prod port
+            sudo docker rm -f app 2>/dev/null || true
+            sudo docker run -d --name app --restart unless-stopped -p 80:8080 $IMAGE
+            sudo docker rm -f app-candidate
