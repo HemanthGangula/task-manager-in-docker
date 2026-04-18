@@ -16,7 +16,7 @@ test('add a task', async ({ page }) => {
   await page.getByRole('button', { name: 'Add' }).click();
 
   await expect(page.getByText('Buy groceries')).toBeVisible();
-  await expect(page.locator('#statTotal')).toHaveText('0');
+  await expect(page.locator('#statTotal')).toHaveText('1');
   await expect(page.locator('#statPending')).toHaveText('1');
 });
 
