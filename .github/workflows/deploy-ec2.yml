@@ -49,38 +49,38 @@ jobs:
           fi
 
           cat > /tmp/prompt.txt << 'EOF'
-You are fixing a bug in a Go task manager web app. A Playwright end-to-end test failed.
-
-The TESTS are the source of truth — do NOT modify them.
-Fix only the application code: webapp/static/index.html or webapp/main.go.
-
-TEST FAILURE:
-EOF
+          You are fixing a bug in a Go task manager web app. A Playwright end-to-end test failed.
+          
+          The TESTS are the source of truth - do NOT modify them.
+          Fix only the application code: webapp/static/index.html or webapp/main.go.
+          
+          TEST FAILURE:
+          EOF
           echo "$FAILURE" >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
-
-TEST FILE (do not touch):
-EOF
+          
+          TEST FILE (do not touch):
+          EOF
           cat tests/task-manager.spec.ts >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
-
-APP HTML + JS (webapp/static/index.html):
-EOF
+          
+          APP HTML + JS (webapp/static/index.html):
+          EOF
           cat webapp/static/index.html >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
-
-APP GO BACKEND (webapp/main.go):
-EOF
+          
+          APP GO BACKEND (webapp/main.go):
+          EOF
           cat webapp/main.go >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
-
-Return ONLY a valid JSON object — no explanation, no markdown fences:
-{"file": "relative/path/to/file", "content": "full corrected file content"}
-EOF
+          
+          Return ONLY a valid JSON object — no explanation, no markdown fences:
+          {"file": "relative/path/to/file", "content": "full corrected file content"}
+          EOF
 
           jq -n --rawfile prompt /tmp/prompt.txt \
             '{contents: [{parts: [{text: $prompt}]}]}' \
@@ -108,7 +108,7 @@ EOF
         run: npx playwright test
 
       - name: Commit AI fix
-        if: env.TESTS_FAILED == 'true' && env.AI_FIXED_FILE != ''
+        if: ${{ env.TESTS_FAILED == 'true' && env.AI_FIXED_FILE != '' }}
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions [AI]"
