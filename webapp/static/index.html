@@ -50,9 +50,7 @@
     }
 
     .add-row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 28px;
+      display: flex; gap: 10px; margin-bottom: 28px;
     }
 
     .add-row input {
@@ -312,7 +310,7 @@
     async function deleteTask(id) {
       const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        allTasks = allTasks.filter(t => t.id === id);
+        allTasks = allTasks.filter(t => t.id !== id);
         render();
         toast('Task deleted');
       }
