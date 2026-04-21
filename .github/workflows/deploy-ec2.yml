@@ -6,11 +6,16 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   playwright-tests:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -31,6 +36,87 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      - name: AI auto-fix and retest
+        if: failure()
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # prevent infinite loop — skip if last commit was already an AI fix
+          LAST_COMMIT=$(git log -1 --pretty=%s)
+          if echo "$LAST_COMMIT" | grep -q "ai-fix:"; then
+            echo "Last commit was already an AI fix — stopping to avoid loop"
+            exit 1
+          fi
+
+          # collect failure details
+          FAILURE=$(find test-results -name "error-context.md" -exec cat {} \; 2>/dev/null | head -150)
+          if [ -z "$FAILURE" ]; then
+            FAILURE="Playwright tests failed - see uploaded report for details"
+          fi
+
+          # build prompt
+          cat > /tmp/prompt.txt << 'EOF'
+          You are fixing a bug in a Go task manager web app. A Playwright end-to-end test failed.
+
+          The TESTS are the source of truth — do NOT modify them.
+          Fix only the application code: webapp/static/index.html or webapp/main.go.
+
+          TEST FAILURE:
+          EOF
+          echo "$FAILURE" >> /tmp/prompt.txt
+
+          cat >> /tmp/prompt.txt << 'EOF'
+
+          TEST FILE (do not touch):
+          EOF
+          cat tests/task-manager.spec.ts >> /tmp/prompt.txt
+
+          cat >> /tmp/prompt.txt << 'EOF'
+
+          APP HTML + JS (webapp/static/index.html):
+          EOF
+          cat webapp/static/index.html >> /tmp/prompt.txt
+
+          cat >> /tmp/prompt.txt << 'EOF'
+
+          APP GO BACKEND (webapp/main.go):
+          EOF
+          cat webapp/main.go >> /tmp/prompt.txt
+
+          cat >> /tmp/prompt.txt << 'EOF'
+
+          Return ONLY a valid JSON object — no explanation, no markdown fences:
+          {"file": "relative/path/to/file", "content": "full corrected file content"}
+          EOF
+
+          # call Gemini API
+          jq -n --rawfile prompt /tmp/prompt.txt \
+            '{contents: [{parts: [{text: $prompt}]}]}' \
+            > /tmp/payload.json
+
+          RESPONSE=$(curl -sf \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$GEMINI_API_KEY" \
+            -H "content-type: application/json" \
+            -d @/tmp/payload.json)
+
+          FIX=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+          FILE=$(echo "$FIX" | jq -r '.file')
+          CONTENT=$(echo "$FIX" | jq -r '.content')
+
+          if [ -z "$FILE" ] || [ "$FILE" = "null" ]; then
+            echo "Gemini did not return a valid fix"
+            exit 1
+          fi
+
+          # apply fix and push directly to master
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions [AI]"
+          echo "$CONTENT" > "$FILE"
+          git add "$FILE"
+          git commit -m "ai-fix: auto-fix failing Playwright tests in $FILE"
+          git push origin master
 
   build-push-deploy:
     runs-on: ubuntu-latest
