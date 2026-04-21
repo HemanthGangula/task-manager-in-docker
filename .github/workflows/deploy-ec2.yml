@@ -28,7 +28,8 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test
+        id: initial-tests
+        run: npx playwright test || echo "TESTS_FAILED=true" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -37,61 +38,50 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-      - name: AI auto-fix and retest
-        if: failure()
+      - name: AI auto-fix
+        if: env.TESTS_FAILED == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # prevent infinite loop — skip if last commit was already an AI fix
-          LAST_COMMIT=$(git log -1 --pretty=%s)
-          if echo "$LAST_COMMIT" | grep -q "ai-fix:"; then
-            echo "Last commit was already an AI fix — stopping to avoid loop"
-            exit 1
-          fi
-
-          # collect failure details
           FAILURE=$(find test-results -name "error-context.md" -exec cat {} \; 2>/dev/null | head -150)
           if [ -z "$FAILURE" ]; then
             FAILURE="Playwright tests failed - see uploaded report for details"
           fi
 
-          # build prompt
           cat > /tmp/prompt.txt << 'EOF'
-          You are fixing a bug in a Go task manager web app. A Playwright end-to-end test failed.
+You are fixing a bug in a Go task manager web app. A Playwright end-to-end test failed.
 
-          The TESTS are the source of truth — do NOT modify them.
-          Fix only the application code: webapp/static/index.html or webapp/main.go.
+The TESTS are the source of truth — do NOT modify them.
+Fix only the application code: webapp/static/index.html or webapp/main.go.
 
-          TEST FAILURE:
-          EOF
+TEST FAILURE:
+EOF
           echo "$FAILURE" >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
 
-          TEST FILE (do not touch):
-          EOF
+TEST FILE (do not touch):
+EOF
           cat tests/task-manager.spec.ts >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
 
-          APP HTML + JS (webapp/static/index.html):
-          EOF
+APP HTML + JS (webapp/static/index.html):
+EOF
           cat webapp/static/index.html >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
 
-          APP GO BACKEND (webapp/main.go):
-          EOF
+APP GO BACKEND (webapp/main.go):
+EOF
           cat webapp/main.go >> /tmp/prompt.txt
 
           cat >> /tmp/prompt.txt << 'EOF'
 
-          Return ONLY a valid JSON object — no explanation, no markdown fences:
-          {"file": "relative/path/to/file", "content": "full corrected file content"}
-          EOF
+Return ONLY a valid JSON object — no explanation, no markdown fences:
+{"file": "relative/path/to/file", "content": "full corrected file content"}
+EOF
 
-          # call Gemini API
           jq -n --rawfile prompt /tmp/prompt.txt \
             '{contents: [{parts: [{text: $prompt}]}]}' \
             > /tmp/payload.json
@@ -110,12 +100,20 @@ jobs:
             exit 1
           fi
 
-          # apply fix and push directly to master
+          echo "$CONTENT" > "$FILE"
+          echo "AI_FIXED_FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Re-run tests after AI fix
+        if: env.TESTS_FAILED == 'true'
+        run: npx playwright test
+
+      - name: Commit AI fix
+        if: env.TESTS_FAILED == 'true' && env.AI_FIXED_FILE != ''
+        run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions [AI]"
-          echo "$CONTENT" > "$FILE"
-          git add "$FILE"
-          git commit -m "ai-fix: auto-fix failing Playwright tests in $FILE"
+          git add ${{ env.AI_FIXED_FILE }}
+          git commit -m "ai-fix: auto-fix failing Playwright tests in ${{ env.AI_FIXED_FILE }}"
           git push origin master
 
   build-push-deploy:
