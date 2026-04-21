@@ -27,7 +27,9 @@
       padding: 40px;
     }
 
-    .header { margin-bottom: 28px; }
+    .header {
+      margin-bottom: 28px;
+    }
 
     .eyebrow {
       display: inline-block;
@@ -41,7 +43,11 @@
       margin-bottom: 14px;
     }
 
-    h1 { font-size: 1.9rem; color: #1f2937; line-height: 1.2; }
+    h1 {
+      font-size: 1.9rem;
+      color: #1f2937;
+      line-height: 1.2;
+    }
 
     .add-row {
       display: flex;
@@ -58,7 +64,9 @@
       outline: none;
       transition: border-color .15s;
     }
-    .add-row input:focus { border-color: #2563eb; }
+    .add-row input:focus {
+      border-color: #2563eb;
+    }
 
     .add-row button {
       padding: 12px 22px;
@@ -72,8 +80,13 @@
       transition: background .15s;
       white-space: nowrap;
     }
-    .add-row button:hover { background: #1d4ed8; }
-    .add-row button:disabled { background: #93c5fd; cursor: not-allowed; }
+    .add-row button:hover {
+      background: #1d4ed8;
+    }
+    .add-row button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
 
     .stats {
       display: flex;
@@ -89,8 +102,16 @@
       padding: 14px;
       text-align: center;
     }
-    .stat-num { font-size: 1.6rem; font-weight: 700; color: #1f2937; }
-    .stat-label { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
 
     .filters {
       display: flex;
@@ -115,7 +136,11 @@
       font-weight: 600;
     }
 
-    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
     .task-item {
       display: flex;
@@ -127,15 +152,20 @@
       border-radius: 14px;
       transition: opacity .2s;
     }
-    .task-item.done { opacity: .55; }
+    .task-item.done {
+      opacity: .55;
+    }
 
     .check-btn {
-      width: 26px; height: 26px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       border: 2px solid #d1d5db;
       background: transparent;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
       transition: all .15s;
       font-size: 14px;
@@ -175,7 +205,9 @@
       transition: color .15s;
       padding: 2px 4px;
     }
-    .del-btn:hover { color: #ef4444; }
+    .del-btn:hover {
+      color: #ef4444;
+    }
 
     .empty {
       text-align: center;
@@ -186,7 +218,8 @@
 
     .toast {
       position: fixed;
-      bottom: 24px; right: 24px;
+      bottom: 24px;
+      right: 24px;
       background: #1f2937;
       color: #fff;
       padding: 12px 20px;
@@ -197,7 +230,10 @@
       transition: all .25s;
       pointer-events: none;
     }
-    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -205,7 +241,6 @@
     <div class="header">
       <div class="eyebrow">Task Manager</div>
       <h1>Get things done.</h1>
-
     </div>
 
     <div class="add-row">
@@ -244,7 +279,10 @@
     async function addTask() {
       const input = document.getElementById('taskInput');
       const name = input.value.trim();
-      if (!name) { input.focus(); return; }
+      if (!name) {
+        input.focus();
+        return;
+      }
       document.getElementById('addBtn').disabled = true;
       const res = await fetch('/api/tasks', {
         method: 'POST',
@@ -274,7 +312,7 @@
     async function deleteTask(id) {
       const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        allTasks = allTasks.filter(t => t.id === id);
+        allTasks = allTasks.filter(t => t.id !== id);
         render();
         toast('Task deleted');
       }
