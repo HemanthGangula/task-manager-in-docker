@@ -96,7 +96,7 @@ jobs:
             '{contents: [{parts: [{text: $prompt}]}]}' \
             > /tmp/payload.json
 
-          RESPONSE=$(curl -sf \
+          RESPONSE=$(curl -s \
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$GEMINI_API_KEY" \
             -H "content-type: application/json" \
             -d @/tmp/payload.json)
