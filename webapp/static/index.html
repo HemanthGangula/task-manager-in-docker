@@ -253,7 +253,7 @@
       });
       if (res.ok) {
         const t = await res.json();
-        allTasks.push(t);
+        // allTasks.push(t);
         input.value = '';
         render();
         toast('Task added');
