@@ -310,7 +310,7 @@
     async function deleteTask(id) {
       const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        allTasks = allTasks.filter(t => t.id !== id);
+        allTasks = allTasks.filter(t => t.id === id);
         render();
         toast('Task deleted');
       }
